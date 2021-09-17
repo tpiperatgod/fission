@@ -95,7 +95,7 @@ func startS3StorageService(endpoint, bucketName, subDir string) {
 	os.Setenv("STORAGE_S3_REGION", minioRegion)
 
 	storage := storagesvc.NewS3Storage()
-	_ = storagesvc.Start(logger, storage, port, true)
+	_ = storagesvc.Start(logger, storage, port)
 }
 
 func TestS3StorageService(t *testing.T) {
@@ -212,7 +212,7 @@ func TestLocalStorageService(t *testing.T) {
 	localPath := fmt.Sprintf("/tmp/%v", testID)
 	_ = os.Mkdir(localPath, os.ModePerm)
 	storage := storagesvc.NewLocalStorage(localPath)
-	_ = storagesvc.Start(logger, storage, port, true)
+	_ = storagesvc.Start(logger, storage, port)
 
 	time.Sleep(time.Second)
 	client := MakeClient(fmt.Sprintf("http://localhost:%v/", port))

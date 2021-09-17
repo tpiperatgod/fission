@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 
 	docopt "github.com/docopt/docopt-go"
@@ -42,21 +41,20 @@ import (
 	"github.com/fission/fission/pkg/utils/loggerfactory"
 	"github.com/fission/fission/pkg/utils/otel"
 	"github.com/fission/fission/pkg/utils/profile"
-	"github.com/fission/fission/pkg/utils/tracing"
 )
 
-func runController(logger *zap.Logger, port int, openTracingEnabled bool) {
-	controller.Start(logger, port, false, openTracingEnabled)
+func runController(logger *zap.Logger, port int) {
+	controller.Start(logger, port, false)
 	logger.Fatal("controller exited")
 }
 
-func runRouter(logger *zap.Logger, port int, executorUrl string, openTracingEnabled bool) {
-	router.Start(logger, port, executorUrl, openTracingEnabled)
+func runRouter(logger *zap.Logger, port int, executorUrl string) {
+	router.Start(logger, port, executorUrl)
 	logger.Fatal("router exited")
 }
 
-func runExecutor(logger *zap.Logger, port int, functionNamespace, envBuilderNamespace string, openTracingEnabled bool) {
-	err := executor.StartExecutor(logger, functionNamespace, envBuilderNamespace, port, openTracingEnabled)
+func runExecutor(logger *zap.Logger, port int, functionNamespace, envBuilderNamespace string) {
+	err := executor.StartExecutor(logger, functionNamespace, envBuilderNamespace, port)
 	if err != nil {
 		logger.Fatal("error starting executor", zap.Error(err))
 	}
@@ -91,8 +89,8 @@ func runMQManager(logger *zap.Logger, routerURL string) {
 	}
 }
 
-func runStorageSvc(logger *zap.Logger, port int, storage storagesvc.Storage, openTracingEnabled bool) {
-	err := storagesvc.Start(logger, storage, port, openTracingEnabled)
+func runStorageSvc(logger *zap.Logger, port int, storage storagesvc.Storage) {
+	err := storagesvc.Start(logger, storage, port)
 	if err != nil {
 		logger.Fatal("error starting storage service", zap.Error(err))
 	}
@@ -227,20 +225,13 @@ Options:
 	}
 
 	ctx := context.Background()
-	openTracingEnabled := tracing.TracingEnabled(logger)
-	if openTracingEnabled {
-		err = tracing.RegisterTraceExporter(logger, os.Getenv("TRACE_JAEGER_COLLECTOR_ENDPOINT"), getServiceName(arguments))
-		if err != nil {
-			logger.Fatal("Could not register trace exporter", zap.Error(err), zap.Any("argument", arguments))
-		}
-	} else {
-		shutdown, err := otel.InitProvider(ctx, logger, getServiceName(arguments))
-		if err != nil {
-			logger.Fatal("error initializing provider for OTLP", zap.Error(err), zap.Any("argument", arguments))
-		}
-		if shutdown != nil {
-			defer shutdown(ctx)
-		}
+
+	shutdown, err := otel.InitProvider(ctx, logger, getServiceName(arguments))
+	if err != nil {
+		logger.Fatal("error initializing provider for OTLP", zap.Error(err), zap.Any("argument", arguments))
+	}
+	if shutdown != nil {
+		defer shutdown(ctx)
 	}
 
 	functionNs := getStringArgWithDefault(arguments["--namespace"], "fission-function")
@@ -252,17 +243,17 @@ Options:
 
 	if arguments["--controllerPort"] != nil {
 		port := getPort(logger, arguments["--controllerPort"])
-		runController(logger, port, openTracingEnabled)
+		runController(logger, port)
 	}
 
 	if arguments["--routerPort"] != nil {
 		port := getPort(logger, arguments["--routerPort"])
-		runRouter(logger, port, executorUrl, openTracingEnabled)
+		runRouter(logger, port, executorUrl)
 	}
 
 	if arguments["--executorPort"] != nil {
 		port := getPort(logger, arguments["--executorPort"])
-		runExecutor(logger, port, functionNs, envBuilderNs, openTracingEnabled)
+		runExecutor(logger, port, functionNs, envBuilderNs)
 	}
 
 	if arguments["--kubewatcher"] == true {
@@ -299,7 +290,7 @@ Options:
 		} else if arguments["--storageType"] == string(storagesvc.StorageTypeLocal) {
 			storage = storagesvc.NewLocalStorage("/fission")
 		}
-		runStorageSvc(logger, port, storage, openTracingEnabled)
+		runStorageSvc(logger, port, storage)
 	}
 
 	select {}

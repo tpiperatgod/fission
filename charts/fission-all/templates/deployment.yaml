@@ -343,7 +343,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
         readinessProbe:
           httpGet:
@@ -435,7 +434,6 @@ spec:
           value: {{ .Values.debugEnv | quote }}
         - name: PPROF_ENABLED
           value: {{ .Values.pprof.enabled | quote }}
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
         readinessProbe:
           httpGet:
@@ -513,7 +511,6 @@ spec:
           value: {{ .Values.debugEnv | quote }}
         - name: PPROF_ENABLED
           value: {{ .Values.pprof.enabled | quote }}
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
       serviceAccountName: fission-svc
 {{- if .Values.extraCoreComponentPodConfig }}
@@ -549,7 +546,6 @@ spec:
           value: {{ .Values.debugEnv | quote }}
         - name: PPROF_ENABLED
           value: {{ .Values.pprof.enabled | quote }}
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
       serviceAccountName: fission-svc
 {{- if .Values.extraCoreComponentPodConfig }}
@@ -687,7 +683,6 @@ spec:
           value: {{ .Values.debugEnv | quote }}
         - name: PPROF_ENABLED
           value: {{ .Values.pprof.enabled | quote }}
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
       serviceAccountName: fission-svc
 {{- if .Values.extraCoreComponentPodConfig }}
@@ -826,7 +821,6 @@ spec:
           value: {{ .Values.debugEnv | quote }}
         - name: PPROF_ENABLED
           value: {{ .Values.pprof.enabled | quote }}
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
       serviceAccountName: fission-svc
 {{- if .Values.extraCoreComponentPodConfig }}
@@ -877,7 +871,6 @@ spec:
           value: {{ .Values.debugEnv | quote }}
         - name: PPROF_ENABLED
           value: {{ .Values.pprof.enabled | quote }}
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
         # TLS authentication is TLS with authentication (2 way)
         # More info: https://docs.confluent.io/current/kafka/authentication_ssl.html#ssl-overview
@@ -976,7 +969,6 @@ spec:
           value: {{ .Values.debugEnv | quote }}
         - name: PPROF_ENABLED
           value: {{ .Values.pprof.enabled | quote }}
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
       serviceAccountName: fission-svc
 {{- if .Values.extraCoreComponentPodConfig }}
@@ -1035,7 +1027,6 @@ spec:
         - name: STORAGE_S3_REGION
           value: {{ .Values.persistence.s3.region }}
         {{- end }}
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
         {{- if ne (.Values.persistence.storageType | default "local") "s3" }}
         volumeMounts:
@@ -1124,7 +1115,6 @@ spec:
           value: "{{ .Values.mqt_keda.connector_images.gcp_pub_sub.image }}:{{ .Values.mqt_keda.connector_images.gcp_pub_sub.tag }}"
         - name: REDIS_IMAGE
           value: "{{ .Values.mqt_keda.connector_images.redis.image }}:{{ .Values.mqt_keda.connector_images.redis.tag }}"
-        {{- include "opentracing.envs" . | indent 8 }}
         {{- include "opentelemtry.envs" . | indent 8 }}
       serviceAccountName: fission-svc
 {{- if .Values.extraCoreComponentPodConfig }}

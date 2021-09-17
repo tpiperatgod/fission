@@ -35,7 +35,6 @@ import (
 	"github.com/fission/fission/pkg/throttler"
 	"github.com/fission/fission/pkg/utils"
 	"github.com/fission/fission/pkg/utils/otel"
-	"github.com/fission/fission/pkg/utils/tracing"
 )
 
 // HTTPTriggerSet represents an HTTP trigger set
@@ -113,8 +112,6 @@ func routerHealthHandler(w http.ResponseWriter, r *http.Request) {
 func (ts *HTTPTriggerSet) getRouter(fnTimeoutMap map[types.UID]int) *mux.Router {
 	muxRouter := mux.NewRouter()
 
-	openTracingEnabled := tracing.TracingEnabled(ts.logger)
-
 	// HTTP triggers setup by the user
 	homeHandled := false
 	for i := range ts.triggers {
@@ -148,7 +145,6 @@ func (ts *HTTPTriggerSet) getRouter(fnTimeoutMap map[types.UID]int) *mux.Router 
 			svcAddrUpdateThrottler:   ts.svcAddrUpdateThrottler,
 			functionTimeoutMap:       fnTimeoutMap,
 			unTapServiceTimeout:      ts.unTapServiceTimeout,
-			openTracingEnabled:       openTracingEnabled,
 		}
 
 		// The functionHandler for HTTP trigger with fn reference type "FunctionReferenceTypeFunctionName",
@@ -179,16 +175,11 @@ func (ts *HTTPTriggerSet) getRouter(fnTimeoutMap map[types.UID]int) *mux.Router 
 		}
 
 		var handler http.Handler
-		if openTracingEnabled {
-			handler = http.HandlerFunc(fh.handler)
+		if trigger.Spec.Prefix != nil && *trigger.Spec.Prefix != "" {
+			handler = otel.GetHandlerWithOTEL(http.HandlerFunc(fh.handler), *trigger.Spec.Prefix)
 		} else {
-			if trigger.Spec.Prefix != nil && *trigger.Spec.Prefix != "" {
-				handler = otel.GetHandlerWithOTEL(http.HandlerFunc(fh.handler), *trigger.Spec.Prefix)
-			} else {
-				handler = otel.GetHandlerWithOTEL(http.HandlerFunc(fh.handler), trigger.Spec.RelativeURL)
-			}
+			handler = otel.GetHandlerWithOTEL(http.HandlerFunc(fh.handler), trigger.Spec.RelativeURL)
 		}
-
 		if trigger.Spec.Prefix != nil && *trigger.Spec.Prefix != "" {
 			prefix := *trigger.Spec.Prefix
 			if strings.HasSuffix(prefix, "/") {
@@ -254,11 +245,7 @@ func (ts *HTTPTriggerSet) getRouter(fnTimeoutMap map[types.UID]int) *mux.Router 
 		var handler http.Handler
 		internalRoute := utils.UrlForFunction(fn.ObjectMeta.Name, fn.ObjectMeta.Namespace)
 		internalPrefixRoute := internalRoute + "/"
-		if openTracingEnabled {
-			handler = http.HandlerFunc(fh.handler)
-		} else {
-			handler = otel.GetHandlerWithOTEL(http.HandlerFunc(fh.handler), internalRoute)
-		}
+		handler = otel.GetHandlerWithOTEL(http.HandlerFunc(fh.handler), internalRoute)
 		muxRouter.Handle(internalRoute, handler)
 		muxRouter.PathPrefix(internalPrefixRoute).Handler(handler)
 		ts.logger.Debug("add internal handler and prefix route for function", zap.String("router", internalRoute), zap.Any("function", fn))

@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"go.opencensus.io/plugin/ochttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"golang.org/x/net/context/ctxhttp"
@@ -35,7 +34,6 @@ import (
 
 	fv1 "github.com/fission/fission/pkg/apis/core/v1"
 	ferror "github.com/fission/fission/pkg/error"
-	"github.com/fission/fission/pkg/utils/tracing"
 )
 
 type (
@@ -58,13 +56,7 @@ type (
 
 // MakeClient initializes and returns a Client instance.
 func MakeClient(logger *zap.Logger, executorURL string) *Client {
-	var hc *http.Client
-	if tracing.TracingEnabled(logger) {
-		hc = &http.Client{Transport: &ochttp.Transport{}}
-	} else {
-		hc = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
-	}
-
+	hc := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	c := &Client{
 		logger:      logger.Named("executor_client"),
 		executorURL: strings.TrimSuffix(executorURL, "/"),

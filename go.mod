@@ -3,7 +3,6 @@ module github.com/fission/fission
 go 1.16
 
 require (
-	contrib.go.opencensus.io/exporter/jaeger v0.2.1
 	github.com/Azure/azure-sdk-for-go v32.5.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
 	github.com/Microsoft/go-winio v0.4.16 // indirect
@@ -53,7 +52,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/ulikunitz/xz v0.5.9 // indirect
 	github.com/wcharczuk/go-chart v2.0.1+incompatible
-	go.opencensus.io v0.23.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.22.0
 	go.opentelemetry.io/otel v1.0.0-RC2
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.0.0-RC2

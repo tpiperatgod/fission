@@ -43,16 +43,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.opencensus.io/plugin/ochttp"
-	"go.opencensus.io/trace"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
@@ -81,37 +77,11 @@ func router(ctx context.Context, logger *zap.Logger, httpTriggerSet *HTTPTrigger
 	return mr
 }
 
-func serve(ctx context.Context, logger *zap.Logger, port int, tracingSamplingRate float64,
-	httpTriggerSet *HTTPTriggerSet, displayAccessLog bool, openTracingEnabled bool) {
+func serve(ctx context.Context, logger *zap.Logger, port int, httpTriggerSet *HTTPTriggerSet, displayAccessLog bool) {
 	mr := router(ctx, logger, httpTriggerSet)
 	url := fmt.Sprintf(":%v", port)
 
-	var err error
-	if openTracingEnabled {
-		err = http.ListenAndServe(url, &ochttp.Handler{
-			Handler: mr,
-			GetStartOptions: func(r *http.Request) trace.StartOptions {
-				// do not trace router healthz endpoint
-				if strings.Compare(r.URL.Path, "/router-healthz") == 0 {
-					return trace.StartOptions{
-						Sampler: trace.NeverSample(),
-					}
-				}
-				if displayAccessLog {
-					reqMsg, err := httputil.DumpRequest(r, false)
-					if err != nil {
-						logger.Error("error dumping request", zap.Error(err))
-					}
-					logger.Info("request dump", zap.String("request", string(reqMsg)))
-				}
-				return trace.StartOptions{
-					Sampler: trace.ProbabilitySampler(tracingSamplingRate),
-				}
-			},
-		})
-	} else {
-		err = http.ListenAndServe(url, otelUtils.GetHandlerWithOTEL(mr, "fission-router", otelUtils.UrlsToIgnore("/router-healthz")))
-	}
+	err := http.ListenAndServe(url, otelUtils.GetHandlerWithOTEL(mr, "fission-router", otelUtils.UrlsToIgnore("/router-healthz")))
 	if err != nil {
 		logger.Error("HTTP server error", zap.Error(err))
 	}
@@ -126,7 +96,7 @@ func serveMetric(logger *zap.Logger) {
 }
 
 // Start starts a router
-func Start(logger *zap.Logger, port int, executorURL string, openTracingEnabled bool) {
+func Start(logger *zap.Logger, port int, executorURL string) {
 	fmap := makeFunctionServiceMap(logger, time.Minute)
 
 	fissionClient, kubeClient, _, _, err := crd.MakeFissionClient()
@@ -224,16 +194,6 @@ func Start(logger *zap.Logger, port int, executorURL string, openTracingEnabled 
 			zap.Duration("default", unTapServiceTimeout))
 	}
 
-	tracingSamplingRateStr := os.Getenv("TRACING_SAMPLING_RATE")
-	tracingSamplingRate, err := strconv.ParseFloat(tracingSamplingRateStr, 64)
-	if err != nil {
-		tracingSamplingRate = .5
-		logger.Error("failed to parse tracing sampling rate from 'TRACING_SAMPLING_RATE' - set to the default value",
-			zap.Error(err),
-			zap.String("value", tracingSamplingRateStr),
-			zap.Float64("default", tracingSamplingRate))
-	}
-
 	displayAccessLogStr := os.Getenv("DISPLAY_ACCESS_LOG")
 	displayAccessLog, err := strconv.ParseBool(displayAccessLogStr)
 	if err != nil {
@@ -263,5 +223,5 @@ func Start(logger *zap.Logger, port int, executorURL string, openTracingEnabled 
 
 	ctxWithCancel, cancel := context.WithCancel(ctx)
 	defer cancel()
-	serve(ctxWithCancel, logger, port, tracingSamplingRate, triggers, displayAccessLog, openTracingEnabled)
+	serve(ctxWithCancel, logger, port, triggers, displayAccessLog)
 }
